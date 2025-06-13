@@ -1,42 +1,51 @@
 package com.example.EventsManagement.service;
 
-import com.example.EventsManagement.models.entity.Event;
-import com.example.EventsManagement.repository.EventRepository;
+import com.example.EventsManagement.models.Event;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 
 @Service
 public class EventService {
 
-    private final EventRepository eventRepository;
 
-    public EventService(EventRepository eventRepository) {
-        this.eventRepository = eventRepository;
+    private final List<Event> events = new ArrayList<>();
+
+    public void addEvent(Event event){
+        events.add(event);
     }
 
-    public void saveEvent(Event event) {
-        eventRepository.save(event);
+    public List<Event> getFilteredAndSortedEvents() {
+        return events.stream()
+                .filter(e -> (
+                        (e.getCity().equalsIgnoreCase("Plovdiv") && e.getDate().getMonthValue() == 9) || // септември
+                                ((e.getCity().equalsIgnoreCase("Varna") || e.getCity().equalsIgnoreCase("Stara Zagora")) &&
+                                        isInSpring(e.getDate()))
+                ))
+                .sorted(Comparator
+                        .comparing((Event e) -> !e.getTitle().equalsIgnoreCase("Dev Bites"))
+                        .thenComparing(Event::getTitle)
+                        .thenComparing(Event::getDate)
+                        .thenComparing(Event::getType)
+                        .thenComparing(Event::getCity)
+                )
+                .collect(Collectors.toList());
     }
 
-    public List<Event> filterEvents(String eventName, String eventTown, String eventType, Date eventDate) {
-        List<Event> allEvents = eventRepository.findAll();
-
-        return allEvents.stream()
-                .filter(e -> eventName == null || e.getEventName().toLowerCase().contains(eventName.toLowerCase()))
-                .filter(e -> eventTown == null || e.getEventTown().toLowerCase().contains(eventTown.toLowerCase()))
-                .filter(e -> eventType == null || e.getEventType().toLowerCase().contains(eventType.toLowerCase()))
-                .filter(e -> eventDate == null || sameDay(e.getEventDate(), eventDate))
-                .toList();
+    private boolean isInSpring(LocalDate date) {
+        int month = date.getMonthValue();
+        return month >= 3 && month <= 5;
     }
 
-    private boolean sameDay(Date d1, Date d2) {
-        return d1.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate()
-                .isEqual(d2.toInstant().atZone(java.time.ZoneId.systemDefault()).toLocalDate());
+    public List<Event> getAllEvents() {
+        return events;
     }
-
 
 
 }
